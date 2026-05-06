@@ -1,0 +1,11 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/BasicScriptTest",
+    "pages/TypeCheckTest",
+    "pages/ObjectTest",
+    "pages/ArrayTest",
+    "pages/FunctionTest",
+    "pages/AdvancedTest"
+  ]
+}

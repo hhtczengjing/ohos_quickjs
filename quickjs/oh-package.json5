@@ -1,0 +1,11 @@
+{
+  "name": "@devzeng/quickjs",
+  "version": "0.1.0",
+  "description": "QuickJS for HarmonyOS.",
+  "main": "Index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "libquickjs.so": "file:./src/main/cpp/types/libquickjs"
+  }
+}
