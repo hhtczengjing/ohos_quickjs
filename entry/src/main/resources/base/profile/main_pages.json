@@ -6,6 +6,7 @@
     "pages/ObjectTest",
     "pages/ArrayTest",
     "pages/FunctionTest",
-    "pages/AdvancedTest"
+    "pages/AdvancedTest",
+    "pages/ErrorTest"
   ]
 }

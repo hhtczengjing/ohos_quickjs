@@ -432,6 +432,62 @@ static napi_value IsCallable(napi_env env, napi_callback_info info) {
     return NAPIBoolean(env, JS_IsFunction(entry->context, entry->value));
 }
 
+static napi_value IsError(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
+
+    int64_t valueHandle = NValueToHandle(env, args[0]);
+    ValueEntry* entry = HandleToValue(valueHandle);
+    if (!entry) return NAPIBoolean(env, false);
+
+    return NAPIBoolean(env, JS_IsError(entry->context, entry->value));
+}
+
+// ============== Error / Exception ==============
+
+static napi_value IsException(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
+
+    int64_t valueHandle = NValueToHandle(env, args[0]);
+    ValueEntry* entry = HandleToValue(valueHandle);
+    if (!entry) return NAPIBoolean(env, false);
+
+    return NAPIBoolean(env, JS_IsException(entry->value));
+}
+
+static napi_value GetException(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
+
+    int64_t engineHandle = NValueToHandle(env, args[0]);
+    JSContext* ctx = HandleToContext(engineHandle);
+    if (!ctx) return NAPIUndefined(env);
+
+    JSValue exc = JS_GetException(ctx);
+    return JSValueToHandle(env, exc, ctx);
+}
+
+static napi_value ThrowException(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
+
+    int64_t engineHandle = NValueToHandle(env, args[0]);
+    JSContext* ctx = HandleToContext(engineHandle);
+    if (!ctx) return NAPIUndefined(env);
+
+    int64_t valueHandle = NValueToHandle(env, args[1]);
+    ValueEntry* entry = HandleToValue(valueHandle);
+    if (!entry) return NAPIUndefined(env);
+
+    JSValue exc = JS_Throw(ctx, JS_DupValue(ctx, entry->value));
+    return JSValueToHandle(env, exc, ctx);
+}
+
 // ============== Value Conversion ==============
 
 static napi_value ToBooleanValue(napi_env env, napi_callback_info info) {
@@ -842,6 +898,8 @@ static napi_value Init(napi_env env, napi_value exports)
         { "isArray", nullptr, IsArray, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "isDate", nullptr, IsDate, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "isCallable", nullptr, IsCallable, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "isError", nullptr, IsError, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "isException", nullptr, IsException, nullptr, nullptr, nullptr, napi_default, nullptr },
 
         // Value conversion
         { "toBooleanValue", nullptr, ToBooleanValue, nullptr, nullptr, nullptr, napi_default, nullptr },
@@ -872,6 +930,10 @@ static napi_value Init(napi_env env, napi_value exports)
 
         // Script evaluation
         { "evaluateScript", nullptr, EvaluateScript, nullptr, nullptr, nullptr, napi_default, nullptr },
+
+        // Error / Exception
+        { "getException", nullptr, GetException, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "throwException", nullptr, ThrowException, nullptr, nullptr, nullptr, napi_default, nullptr },
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

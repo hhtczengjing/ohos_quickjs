@@ -75,6 +75,26 @@ export class JSValue {
     return new JSValue(ctx, handle);
   }
 
+  static valueWithNewTypeError(message: string, ctx: JSContext): JSValue {
+    const handle = qjs.createError(ctx.engineHandle, 'TypeError', message);
+    return new JSValue(ctx, handle);
+  }
+
+  static valueWithNewRangeError(message: string, ctx: JSContext): JSValue {
+    const handle = qjs.createError(ctx.engineHandle, 'RangeError', message);
+    return new JSValue(ctx, handle);
+  }
+
+  static valueWithNewSyntaxError(message: string, ctx: JSContext): JSValue {
+    const handle = qjs.createError(ctx.engineHandle, 'SyntaxError', message);
+    return new JSValue(ctx, handle);
+  }
+
+  static valueWithNewReferenceError(message: string, ctx: JSContext): JSValue {
+    const handle = qjs.createError(ctx.engineHandle, 'ReferenceError', message);
+    return new JSValue(ctx, handle);
+  }
+
   // ==================== Type Checks ====================
 
   get isUndefined(): boolean {
@@ -111,6 +131,14 @@ export class JSValue {
 
   get isCallable(): boolean {
     return qjs.isCallable(this.handle);
+  }
+
+  get isError(): boolean {
+    return qjs.isError(this.handle);
+  }
+
+  get isException(): boolean {
+    return qjs.isException(this.handle);
   }
 
   // ==================== Conversion ====================
@@ -236,6 +264,26 @@ export class JSValue {
   invokeMethod(methodName: string, args: JSValue[]): JSValue {
     const method = this.getProperty(methodName);
     return method.callWithArguments(args);
+  }
+
+  // ==================== Error Details ====================
+
+  get errorMessage(): string {
+    if (!this.isError) return '';
+    const msgHandle = qjs.getProperty(this.ctxHandle.engineHandle, this.handle, 'message');
+    return qjs.toStringValue(msgHandle);
+  }
+
+  get errorName(): string {
+    if (!this.isError) return '';
+    const nameHandle = qjs.getProperty(this.ctxHandle.engineHandle, this.handle, 'name');
+    return qjs.toStringValue(nameHandle);
+  }
+
+  get errorStack(): string {
+    if (!this.isError) return '';
+    const stackHandle = qjs.getProperty(this.ctxHandle.engineHandle, this.handle, 'stack');
+    return qjs.toStringValue(stackHandle);
   }
 
   // ==================== Comparison ====================

@@ -24,6 +24,8 @@ export const isObject: (valueHandle: bigint) => boolean;
 export const isArray: (valueHandle: bigint) => boolean;
 export const isDate: (valueHandle: bigint) => boolean;
 export const isCallable: (valueHandle: bigint) => boolean;
+export const isError: (valueHandle: bigint) => boolean;
+export const isException: (valueHandle: bigint) => boolean;
 
 // Value Conversion
 export const toBooleanValue: (valueHandle: bigint) => boolean;
@@ -54,3 +56,7 @@ export const release: (valueHandle: bigint) => void;
 
 // Script Evaluation
 export const evaluateScript: (engineHandle: bigint, script: string, sourceURL?: string) => bigint;
+
+// Error / Exception
+export const getException: (engineHandle: bigint) => bigint;
+export const throwException: (engineHandle: bigint, valueHandle: bigint) => bigint;

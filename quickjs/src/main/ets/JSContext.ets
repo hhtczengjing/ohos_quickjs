@@ -34,10 +34,17 @@ export class JSContext {
   }
 
   get exception(): JSValue | null {
-    return null;
+    const handle = qjs.getException(this._engineHandle);
+    if (handle === 0n) {
+      return null;
+    }
+    return new JSValue(this, handle);
   }
 
   set exception(value: JSValue | null) {
+    if (value !== null) {
+      qjs.throwException(this._engineHandle, value.valueHandle);
+    }
   }
 
   exceptionHandler?: (context: JSContext, exception: JSValue) => void;
@@ -45,7 +52,14 @@ export class JSContext {
   evaluateScript(script: string, sourceURL?: string): JSValue {
     const url = sourceURL ?? 'evaluate';
     const handle = qjs.evaluateScript(this.engineHandle, script, url);
-    return new JSValue(this, handle);
+    const value = new JSValue(this, handle);
+    if (value.isException && this.exceptionHandler) {
+      const exc = this.exception;
+      if (exc) {
+        this.exceptionHandler(this, exc);
+      }
+    }
+    return value;
   }
 
   setObject(object: Record<string, number | string | boolean> | JSValue, name: string): void {

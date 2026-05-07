@@ -46,7 +46,10 @@ struct AdvancedTest {
     const errMsg = err.getProperty('message');
     const errName = err.getProperty('name');
     this.section9 = [
-      { name: 'throw error result', expected: 'test error', actual: badEval.toString() },
+      { name: 'throw result isException', expected: 'true', actual: badEval.isException.toString() },
+      { name: 'throw result isError', expected: 'true', actual: badEval.isError.toString() },
+      { name: 'throw error message', expected: 'test error', actual: badEval.errorMessage },
+      { name: 'new Error isError', expected: 'true', actual: err.isError.toString() },
       { name: 'new Error.name', expected: 'Error', actual: errName.toString() },
       { name: 'new Error.message', expected: 'custom error', actual: errMsg.toString() }
     ];

@@ -14,7 +14,8 @@ struct Index {
     { title: 'Object Test', page: 'pages/ObjectTest' },
     { title: 'Array Test', page: 'pages/ArrayTest' },
     { title: 'Function Test', page: 'pages/FunctionTest' },
-    { title: 'Advanced Test', page: 'pages/AdvancedTest' }
+    { title: 'Advanced Test', page: 'pages/AdvancedTest' },
+    { title: 'Error / Exception Test', page: 'pages/ErrorTest' }
   ];
 
   build() {
