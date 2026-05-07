@@ -324,6 +324,20 @@ bool JS_StrictEquals(JSContext* context, JSValue v1, JSValue v2)
     return result;
 }
 
+bool JS_LooseEquals(JSContext* context, JSValue v1, JSValue v2)
+{
+    JSValue thisVar = JS_UNDEFINED;
+    JSValue argv[2] = { v1, v2 };
+    const char script[] = "(v1, v2) => v1 == v2;";
+    JSValue func = JS_Eval(context, script, strlen(script), "<input>", JS_EVAL_TYPE_GLOBAL);
+    JSValue ret = JS_Call(context, func, thisVar, 2, (JSValue*)&argv);
+    bool result = JS_ToBool(context, ret);
+    JS_FreeValue(context, func);
+    JS_FreeValue(context, ret);
+
+    return result;
+}
+
 JSValue JS_StrictDate(JSContext* context, double time)
 {
     JSValue thisVar = JS_UNDEFINED;

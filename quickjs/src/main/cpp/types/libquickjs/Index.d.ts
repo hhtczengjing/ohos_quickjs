@@ -48,6 +48,7 @@ export const construct: (engineHandle: bigint, constructorHandle: bigint, args: 
 
 // Comparison
 export const strictEquals: (valueHandle1: bigint, valueHandle2: bigint) => boolean;
+export const looseEquals: (valueHandle1: bigint, valueHandle2: bigint) => boolean;
 export const instanceOf: (valueHandle: bigint, constructorHandle: bigint) => boolean;
 
 // Value Lifecycle

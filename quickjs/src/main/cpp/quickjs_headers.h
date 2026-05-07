@@ -57,6 +57,7 @@ bool JS_IsDate(JSContext* context, JSValue value);
 bool JS_IsDataView(JSContext* context, JSValue value);
 bool JS_IsTypedArray(JSContext* context, JSValue value);
 bool JS_StrictEquals(JSContext* context, JSValue v1, JSValue v2);
+bool JS_LooseEquals(JSContext* context, JSValue v1, JSValue v2);
 
 JSValue JS_Seal(JSContext* context, JSValue value);
 JSValue JS_Freeze(JSContext* context, JSValue value);

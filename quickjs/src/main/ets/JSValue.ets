@@ -19,6 +19,7 @@ import { JSContext } from './JSContext';
 export class JSValue {
   private ctxHandle: JSContext;
   private handle: bigint;
+  private _released: boolean = false;
 
   constructor(context: JSContext, valueHandle: bigint) {
     this.ctxHandle = context;
@@ -188,6 +189,7 @@ export class JSValue {
       qjs.release(nameHandle);
       const valHandle = qjs.getProperty(this.ctxHandle.engineHandle, this.handle, name);
       result[name] = new JSValue(this.ctxHandle, valHandle);
+      qjs.release(valHandle);
     }
     qjs.release(namesHandle);
     return result;
@@ -293,10 +295,7 @@ export class JSValue {
   }
 
   isEqualWithTypeCoercionTo(value: JSValue): boolean {
-    // Loose equality via JS eval
-    const code = `(${this.toString()} == ${value.toString()})`;
-    const result = this.ctxHandle.evaluateScript(code);
-    return result.toBoolean();
+    return qjs.looseEquals(this.handle, value.handle);
   }
 
   isInstanceOf(constructor: JSValue): boolean {
@@ -306,10 +305,17 @@ export class JSValue {
   // ==================== Lifecycle ====================
 
   addRef(): void {
+    this._released = false;
     qjs.addRef(this.handle);
   }
 
   release(): void {
+    this.finalize();
+  }
+
+  finalize(): void {
+    if (this._released) return;
+    this._released = true;
     qjs.release(this.handle);
   }
 }

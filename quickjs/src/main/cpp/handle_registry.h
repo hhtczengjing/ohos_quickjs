@@ -81,13 +81,13 @@ public:
         return handle;
     }
 
-    static ValueEntry* Get(int64_t handle) {
+    static ValueEntry Get(int64_t handle) {
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = values_.find(handle);
         if (it != values_.end()) {
-            return &it->second;
+            return it->second;
         }
-        return nullptr;
+        return {JS_UNDEFINED, nullptr};
     }
 
     static void Unregister(int64_t handle) {

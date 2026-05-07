@@ -18,6 +18,7 @@
 #include "handle_registry.h"
 #include <string>
 #include <vector>
+#include <cstring>
 
 // Static member definitions for registries
 std::mutex EngineRegistry::mutex_;
@@ -56,7 +57,7 @@ static napi_value JSValueToHandle(napi_env env, JSValue value, JSContext* ctx) {
 }
 
 // Helper: get JSValue from handle
-static ValueEntry* HandleToValue(int64_t handle) {
+static ValueEntry HandleToValue(int64_t handle) {
     return ValueRegistry::Get(handle);
 }
 
@@ -147,6 +148,8 @@ static napi_value NAPINumber(napi_env env, double value) {
 
 static napi_value CreateEngine(napi_env env, napi_callback_info info) {
     JSRuntime* rt = JS_NewRuntime();
+    JS_SetMemoryLimit(rt, 64 * 1024 * 1024);  // 64MB memory limit
+    JS_SetMaxStackSize(rt, 256 * 1024);       // 256KB stack limit
     JSContext* ctx = JS_NewContext(rt);
     if (!ctx) {
         return NAPIUndefined(env);
@@ -330,10 +333,10 @@ static napi_value IsUndefined(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsUndefined(entry->value));
+    return NAPIBoolean(env, JS_IsUndefined(entry.value));
 }
 
 static napi_value IsNull(napi_env env, napi_callback_info info) {
@@ -342,10 +345,10 @@ static napi_value IsNull(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsNull(entry->value));
+    return NAPIBoolean(env, JS_IsNull(entry.value));
 }
 
 static napi_value IsBoolean(napi_env env, napi_callback_info info) {
@@ -354,10 +357,10 @@ static napi_value IsBoolean(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsBool(entry->value));
+    return NAPIBoolean(env, JS_IsBool(entry.value));
 }
 
 static napi_value IsNumber(napi_env env, napi_callback_info info) {
@@ -366,10 +369,10 @@ static napi_value IsNumber(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsNumber(entry->value));
+    return NAPIBoolean(env, JS_IsNumber(entry.value));
 }
 
 static napi_value IsString(napi_env env, napi_callback_info info) {
@@ -378,10 +381,10 @@ static napi_value IsString(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsString(entry->value));
+    return NAPIBoolean(env, JS_IsString(entry.value));
 }
 
 static napi_value IsObject(napi_env env, napi_callback_info info) {
@@ -390,10 +393,10 @@ static napi_value IsObject(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsObject(entry->value));
+    return NAPIBoolean(env, JS_IsObject(entry.value));
 }
 
 static napi_value IsArray(napi_env env, napi_callback_info info) {
@@ -402,10 +405,10 @@ static napi_value IsArray(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsArray(entry->context, entry->value));
+    return NAPIBoolean(env, JS_IsArray(entry.context, entry.value));
 }
 
 static napi_value IsDate(napi_env env, napi_callback_info info) {
@@ -414,10 +417,10 @@ static napi_value IsDate(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsDate(entry->context, entry->value));
+    return NAPIBoolean(env, JS_IsDate(entry.context, entry.value));
 }
 
 static napi_value IsCallable(napi_env env, napi_callback_info info) {
@@ -426,10 +429,10 @@ static napi_value IsCallable(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsFunction(entry->context, entry->value));
+    return NAPIBoolean(env, JS_IsFunction(entry.context, entry.value));
 }
 
 static napi_value IsError(napi_env env, napi_callback_info info) {
@@ -438,10 +441,10 @@ static napi_value IsError(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsError(entry->context, entry->value));
+    return NAPIBoolean(env, JS_IsError(entry.context, entry.value));
 }
 
 // ============== Error / Exception ==============
@@ -452,10 +455,10 @@ static napi_value IsException(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_IsException(entry->value));
+    return NAPIBoolean(env, JS_IsException(entry.value));
 }
 
 static napi_value GetException(napi_env env, napi_callback_info info) {
@@ -465,9 +468,19 @@ static napi_value GetException(napi_env env, napi_callback_info info) {
 
     int64_t engineHandle = NValueToHandle(env, args[0]);
     JSContext* ctx = HandleToContext(engineHandle);
-    if (!ctx) return NAPIUndefined(env);
+    if (!ctx) {
+        napi_value result;
+        napi_create_bigint_uint64(env, 0, &result);
+        return result;
+    }
 
+    // In QuickJS, we always try to get the exception value
     JSValue exc = JS_GetException(ctx);
+    if (JS_IsUndefined(exc) || JS_IsNull(exc)) {
+        napi_value result;
+        napi_create_bigint_uint64(env, 0, &result);
+        return result;
+    }
     return JSValueToHandle(env, exc, ctx);
 }
 
@@ -478,13 +491,21 @@ static napi_value ThrowException(napi_env env, napi_callback_info info) {
 
     int64_t engineHandle = NValueToHandle(env, args[0]);
     JSContext* ctx = HandleToContext(engineHandle);
-    if (!ctx) return NAPIUndefined(env);
+    if (!ctx) {
+        napi_value result;
+        napi_create_bigint_uint64(env, 0, &result);
+        return result;
+    }
 
     int64_t valueHandle = NValueToHandle(env, args[1]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIUndefined(env);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) {
+        napi_value result;
+        napi_create_bigint_uint64(env, 0, &result);
+        return result;
+    }
 
-    JSValue exc = JS_Throw(ctx, JS_DupValue(ctx, entry->value));
+    JSValue exc = JS_Throw(ctx, JS_DupValue(ctx, entry.value));
     return JSValueToHandle(env, exc, ctx);
 }
 
@@ -496,10 +517,10 @@ static napi_value ToBooleanValue(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPIBoolean(env, false);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPIBoolean(env, false);
 
-    int result = JS_ToBool(entry->context, entry->value);
+    int result = JS_ToBool(entry.context, entry.value);
     return NAPIBoolean(env, result == 1);
 }
 
@@ -509,11 +530,11 @@ static napi_value ToNumberValue(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) return NAPINumber(env, 0);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) return NAPINumber(env, 0);
 
     double result;
-    JS_ToFloat64(entry->context, &result, entry->value);
+    JS_ToFloat64(entry.context, &result, entry.value);
     return NAPINumber(env, result);
 }
 
@@ -523,18 +544,18 @@ static napi_value ToStringValue(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (!entry) {
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (!entry.context) {
         napi_value result;
         napi_create_string_utf8(env, "", 0, &result);
         return result;
     }
 
-    const char* str = JS_ToCString(entry->context, entry->value);
+    const char* str = JS_ToCString(entry.context, entry.value);
     napi_value result;
     if (str) {
         napi_create_string_utf8(env, str, strlen(str), &result);
-        JS_FreeCString(entry->context, str);
+        JS_FreeCString(entry.context, str);
     } else {
         napi_create_string_utf8(env, "", 0, &result);
     }
@@ -553,11 +574,11 @@ static napi_value GetProperty(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIUndefined(env);
 
-    ValueEntry* objEntry = HandleToValue(objHandle);
-    if (!objEntry) return NAPIUndefined(env);
+    ValueEntry objEntry = HandleToValue(objHandle);
+    if (!objEntry.context) return NAPIUndefined(env);
 
     std::string key = NValueToString(env, args[2]);
-    JSValue prop = JS_GetPropertyStr(ctx, objEntry->value, key.c_str());
+    JSValue prop = JS_GetPropertyStr(ctx, objEntry.value, key.c_str());
     return JSValueToHandle(env, prop, ctx);
 }
 
@@ -571,13 +592,13 @@ static napi_value SetProperty(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIBoolean(env, false);
 
-    ValueEntry* objEntry = HandleToValue(objHandle);
-    if (!objEntry) return NAPIBoolean(env, false);
+    ValueEntry objEntry = HandleToValue(objHandle);
+    if (!objEntry.context) return NAPIBoolean(env, false);
 
     std::string key = NValueToString(env, args[2]);
     JSValue val = NAPIValueToJSValue(env, args[3], ctx);
 
-    int result = JS_SetPropertyStr(ctx, objEntry->value, key.c_str(), val);
+    int result = JS_SetPropertyStr(ctx, objEntry.value, key.c_str(), val);
     return NAPIBoolean(env, result == 1);
 }
 
@@ -591,11 +612,11 @@ static napi_value HasProperty(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIBoolean(env, false);
 
-    ValueEntry* objEntry = HandleToValue(objHandle);
-    if (!objEntry) return NAPIBoolean(env, false);
+    ValueEntry objEntry = HandleToValue(objHandle);
+    if (!objEntry.context) return NAPIBoolean(env, false);
 
     std::string key = NValueToString(env, args[2]);
-    JSValue prop = JS_GetPropertyStr(ctx, objEntry->value, key.c_str());
+    JSValue prop = JS_GetPropertyStr(ctx, objEntry.value, key.c_str());
     bool has = !JS_IsUndefined(prop);
     JS_FreeValue(ctx, prop);
     return NAPIBoolean(env, has);
@@ -611,12 +632,12 @@ static napi_value DeleteProperty(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIBoolean(env, false);
 
-    ValueEntry* objEntry = HandleToValue(objHandle);
-    if (!objEntry) return NAPIBoolean(env, false);
+    ValueEntry objEntry = HandleToValue(objHandle);
+    if (!objEntry.context) return NAPIBoolean(env, false);
 
     std::string key = NValueToString(env, args[2]);
     JSAtom atom = JS_NewAtom(ctx, key.c_str());
-    int result = JS_DeleteProperty(ctx, objEntry->value, atom, 0);
+    int result = JS_DeleteProperty(ctx, objEntry.value, atom, 0);
     JS_FreeAtom(ctx, atom);
     return NAPIBoolean(env, result == 1);
 }
@@ -631,12 +652,12 @@ static napi_value GetPropertyNames(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIUndefined(env);
 
-    ValueEntry* objEntry = HandleToValue(objHandle);
-    if (!objEntry) return NAPIUndefined(env);
+    ValueEntry objEntry = HandleToValue(objHandle);
+    if (!objEntry.context) return NAPIUndefined(env);
 
     JSPropertyEnum* props = nullptr;
     uint32_t count;
-    if (JS_GetOwnPropertyNames(ctx, &props, &count, objEntry->value, JS_GPN_STRING_MASK) < 0) {
+    if (JS_GetOwnPropertyNames(ctx, &props, &count, objEntry.value, JS_GPN_STRING_MASK) < 0) {
         return NAPIUndefined(env);
     }
 
@@ -663,13 +684,13 @@ static napi_value GetElement(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIUndefined(env);
 
-    ValueEntry* arrEntry = HandleToValue(arrayHandle);
-    if (!arrEntry) return NAPIUndefined(env);
+    ValueEntry arrEntry = HandleToValue(arrayHandle);
+    if (!arrEntry.context) return NAPIUndefined(env);
 
     double index;
     napi_get_value_double(env, args[2], &index);
 
-    JSValue elem = JS_GetPropertyUint32(ctx, arrEntry->value, (uint32_t)index);
+    JSValue elem = JS_GetPropertyUint32(ctx, arrEntry.value, (uint32_t)index);
     return JSValueToHandle(env, elem, ctx);
 }
 
@@ -683,14 +704,14 @@ static napi_value SetElement(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIBoolean(env, false);
 
-    ValueEntry* arrEntry = HandleToValue(arrayHandle);
-    if (!arrEntry) return NAPIBoolean(env, false);
+    ValueEntry arrEntry = HandleToValue(arrayHandle);
+    if (!arrEntry.context) return NAPIBoolean(env, false);
 
     double index;
     napi_get_value_double(env, args[2], &index);
     JSValue val = NAPIValueToJSValue(env, args[3], ctx);
 
-    int result = JS_SetPropertyUint32(ctx, arrEntry->value, (uint32_t)index, val);
+    int result = JS_SetPropertyUint32(ctx, arrEntry.value, (uint32_t)index, val);
     return NAPIBoolean(env, result == 1);
 }
 
@@ -704,10 +725,10 @@ static napi_value GetArrayLength(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPINumber(env, 0);
 
-    ValueEntry* arrEntry = HandleToValue(arrayHandle);
-    if (!arrEntry) return NAPINumber(env, 0);
+    ValueEntry arrEntry = HandleToValue(arrayHandle);
+    if (!arrEntry.context) return NAPINumber(env, 0);
 
-    JSValue lenVal = JS_GetPropertyStr(ctx, arrEntry->value, "length");
+    JSValue lenVal = JS_GetPropertyStr(ctx, arrEntry.value, "length");
     uint32_t len = 0;
     JS_ToUint32(ctx, &len, lenVal);
     JS_FreeValue(ctx, lenVal);
@@ -727,9 +748,9 @@ static napi_value CallFunction(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIUndefined(env);
 
-    ValueEntry* thisEntry = HandleToValue(thisHandle);
-    ValueEntry* funcEntry = HandleToValue(funcHandle);
-    if (!funcEntry) return NAPIUndefined(env);
+    ValueEntry thisEntry = HandleToValue(thisHandle);
+    ValueEntry funcEntry = HandleToValue(funcHandle);
+    if (!funcEntry.context) return NAPIUndefined(env);
 
     uint32_t argsLen;
     napi_get_array_length(env, args[3], &argsLen);
@@ -739,12 +760,12 @@ static napi_value CallFunction(napi_env env, napi_callback_info info) {
         napi_value elem;
         napi_get_element(env, args[3], i, &elem);
         int64_t argHandle = NValueToHandle(env, elem);
-        ValueEntry* argEntry = HandleToValue(argHandle);
-        argValues[i] = JS_DupValue(ctx, argEntry ? argEntry->value : JS_UNDEFINED);
+        ValueEntry argEntry = HandleToValue(argHandle);
+        argValues[i] = JS_DupValue(ctx, argEntry.context ? argEntry.value : JS_UNDEFINED);
     }
 
-    JSValue thisVal = thisEntry ? thisEntry->value : JS_UNDEFINED;
-    JSValue result = JS_Call(ctx, funcEntry->value, thisVal, argValues.size(),
+    JSValue thisVal = thisEntry.context ? thisEntry.value : JS_UNDEFINED;
+    JSValue result = JS_Call(ctx, funcEntry.value, thisVal, argValues.size(),
                              (JSValueConst*)argValues.data());
 
     FreeJSValues(ctx, argValues);
@@ -761,8 +782,8 @@ static napi_value Construct(napi_env env, napi_callback_info info) {
     JSContext* ctx = HandleToContext(engineHandle);
     if (!ctx) return NAPIUndefined(env);
 
-    ValueEntry* ctorEntry = HandleToValue(constructorHandle);
-    if (!ctorEntry) return NAPIUndefined(env);
+    ValueEntry ctorEntry = HandleToValue(constructorHandle);
+    if (!ctorEntry.context) return NAPIUndefined(env);
 
     uint32_t argsLen;
     napi_get_array_length(env, args[2], &argsLen);
@@ -772,11 +793,11 @@ static napi_value Construct(napi_env env, napi_callback_info info) {
         napi_value elem;
         napi_get_element(env, args[2], i, &elem);
         int64_t argHandle = NValueToHandle(env, elem);
-        ValueEntry* argEntry = HandleToValue(argHandle);
-        argValues[i] = JS_DupValue(ctx, argEntry ? argEntry->value : JS_UNDEFINED);
+        ValueEntry argEntry = HandleToValue(argHandle);
+        argValues[i] = JS_DupValue(ctx, argEntry.context ? argEntry.value : JS_UNDEFINED);
     }
 
-    JSValue result = JS_CallConstructor(ctx, ctorEntry->value, argValues.size(),
+    JSValue result = JS_CallConstructor(ctx, ctorEntry.value, argValues.size(),
                                         (JSValueConst*)argValues.data());
 
     FreeJSValues(ctx, argValues);
@@ -792,11 +813,25 @@ static napi_value StrictEquals(napi_env env, napi_callback_info info) {
 
     int64_t handle1 = NValueToHandle(env, args[0]);
     int64_t handle2 = NValueToHandle(env, args[1]);
-    ValueEntry* entry1 = HandleToValue(handle1);
-    ValueEntry* entry2 = HandleToValue(handle2);
-    if (!entry1 || !entry2) return NAPIBoolean(env, false);
+    ValueEntry entry1 = HandleToValue(handle1);
+    ValueEntry entry2 = HandleToValue(handle2);
+    if (!entry1.context || !entry2.context) return NAPIBoolean(env, false);
 
-    return NAPIBoolean(env, JS_StrictEquals(entry1->context, entry1->value, entry2->value));
+    return NAPIBoolean(env, JS_StrictEquals(entry1.context, entry1.value, entry2.value));
+}
+
+static napi_value LooseEquals(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
+
+    int64_t handle1 = NValueToHandle(env, args[0]);
+    int64_t handle2 = NValueToHandle(env, args[1]);
+    ValueEntry entry1 = HandleToValue(handle1);
+    ValueEntry entry2 = HandleToValue(handle2);
+    if (!entry1.context || !entry2.context) return NAPIBoolean(env, false);
+
+    return NAPIBoolean(env, JS_LooseEquals(entry1.context, entry1.value, entry2.value));
 }
 
 static napi_value InstanceOf(napi_env env, napi_callback_info info) {
@@ -806,11 +841,11 @@ static napi_value InstanceOf(napi_env env, napi_callback_info info) {
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
     int64_t constructorHandle = NValueToHandle(env, args[1]);
-    ValueEntry* valueEntry = HandleToValue(valueHandle);
-    ValueEntry* ctorEntry = HandleToValue(constructorHandle);
-    if (!valueEntry || !ctorEntry) return NAPIBoolean(env, false);
+    ValueEntry valueEntry = HandleToValue(valueHandle);
+    ValueEntry ctorEntry = HandleToValue(constructorHandle);
+    if (!valueEntry.context || !ctorEntry.context) return NAPIBoolean(env, false);
 
-    int result = JS_IsInstanceOf(valueEntry->context, valueEntry->value, ctorEntry->value);
+    int result = JS_IsInstanceOf(valueEntry.context, valueEntry.value, ctorEntry.value);
     return NAPIBoolean(env, result == 1);
 }
 
@@ -822,9 +857,9 @@ static napi_value AddRef(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (entry) {
-        JS_DupValue(entry->context, entry->value);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (entry.context) {
+        JS_DupValue(entry.context, entry.value);
     }
     return NAPIUndefined(env);
 }
@@ -835,9 +870,9 @@ static napi_value Release(napi_env env, napi_callback_info info) {
     NAPI_CALL(napi_get_cb_info(env, info, &argc, args, nullptr, nullptr));
 
     int64_t valueHandle = NValueToHandle(env, args[0]);
-    ValueEntry* entry = HandleToValue(valueHandle);
-    if (entry) {
-        JS_FreeValue(entry->context, entry->value);
+    ValueEntry entry = HandleToValue(valueHandle);
+    if (entry.context) {
+        JS_FreeValue(entry.context, entry.value);
         ValueRegistry::Unregister(valueHandle);
     }
     return NAPIUndefined(env);
@@ -922,6 +957,7 @@ static napi_value Init(napi_env env, napi_value exports)
 
         // Comparison
         { "strictEquals", nullptr, StrictEquals, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "looseEquals", nullptr, LooseEquals, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "instanceOf", nullptr, InstanceOf, nullptr, nullptr, nullptr, napi_default, nullptr },
 
         // Value lifecycle

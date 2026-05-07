@@ -64,7 +64,9 @@ export class JSContext {
 
   setObject(object: Record<string, number | string | boolean> | JSValue, name: string): void {
     if (object instanceof JSValue) {
-      qjs.setProperty(this.engineHandle, this.globalObject.valueHandle, name, object.valueHandle);
+      const globalObj = this.globalObject;
+      qjs.setProperty(this.engineHandle, globalObj.valueHandle, name, object.valueHandle);
+      globalObj.release();
     } else {
       const objHandle = qjs.createObject(this.engineHandle);
       for (const key of Object.keys(object)) {
@@ -72,15 +74,21 @@ export class JSContext {
         if (typeof val === 'number') {
           const numHandle = qjs.createNumber(this.engineHandle, val);
           qjs.setProperty(this.engineHandle, objHandle, key, numHandle);
+          qjs.release(numHandle);
         } else if (typeof val === 'string') {
           const strHandle = qjs.createString(this.engineHandle, val);
           qjs.setProperty(this.engineHandle, objHandle, key, strHandle);
+          qjs.release(strHandle);
         } else if (typeof val === 'boolean') {
           const boolHandle = qjs.createBoolean(this.engineHandle, val);
           qjs.setProperty(this.engineHandle, objHandle, key, boolHandle);
+          qjs.release(boolHandle);
         }
       }
-      qjs.setProperty(this.engineHandle, this.globalObject.valueHandle, name, objHandle);
+      const globalObj = this.globalObject;
+      qjs.setProperty(this.engineHandle, globalObj.valueHandle, name, objHandle);
+      globalObj.release();
+      qjs.release(objHandle);
     }
   }
 
