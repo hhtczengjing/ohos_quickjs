@@ -5,6 +5,7 @@ on:
     branches: [ master, main, develop ]
   pull_request:
     branches: [ master, main, develop ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,7 +20,7 @@ jobs:
     - name: Setup HarmonyOS SDK
       uses: hhtczengjing/setup_ohos_sdk@master
       with:
-        sdk_version: "6.1.0.830"
+        version: "6.1.0.830"
 
     - name: Setup environment and build
       run: |
