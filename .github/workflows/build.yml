@@ -33,9 +33,6 @@ jobs:
         export DEVECO_NODE="${DEVECO_TOOLS_HOME}/node/bin"
         export PATH="${DEVECO_OHPM}:${DEVECO_HVIGOR}:${DEVECO_NODE}:$PATH"
 
-        echo "DEVECO_SDK_HOME: $DEVECO_SDK_HOME"
-        echo "DEVECO_TOOLS_HOME: $DEVECO_TOOLS_HOME"
-
         # Clean up build artifacts
         rm -rf ./oh_modules
         rm -rf ./build
