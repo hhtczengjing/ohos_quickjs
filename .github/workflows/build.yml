@@ -1,0 +1,80 @@
+name: Build QuickJS
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup HarmonyOS SDK
+      uses: hhtczengjing/setup_ohos_sdk@v1
+      with:
+        sdk_version: "6.1.0.830"
+
+    - name: Setup environment and build
+      run: |
+        set -e
+
+        export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
+        export DEVECO_TOOLS_HOME="${DEVECO_TOOLS_HOME}"
+        export DEVECO_OHPM="${DEVECO_TOOLS_HOME}/ohpm/bin"
+        export DEVECO_HVIGOR="${DEVECO_TOOLS_HOME}/hvigor/bin"
+        export DEVECO_NODE="${DEVECO_TOOLS_HOME}/node/bin"
+        export PATH="${DEVECO_OHPM}:${DEVECO_HVIGOR}:${DEVECO_NODE}:$PATH"
+
+        echo "DEVECO_SDK_HOME: $DEVECO_SDK_HOME"
+        echo "DEVECO_TOOLS_HOME: $DEVECO_TOOLS_HOME"
+
+        # Clean up build artifacts
+        rm -rf ./oh_modules
+        rm -rf ./build
+        rm -rf ./quickjs/.cxx
+        rm -rf ./quickjs/oh_modules
+        rm -rf ./quickjs/build
+
+        # Configure and install dependencies
+        ohpm config set registry https://ohpm.openharmony.cn/ohpm/
+        ohpm config set strict_ssl false
+        ohpm clean
+        ohpm install --registry https://ohpm.openharmony.cn/ohpm/ --strict_ssl false --all
+
+        # Build QuickJS HAR (SDK Module)
+        echo "Building QuickJS HAR module..."
+        hvigorw -p product=default clean --no-daemon
+        hvigorw --mode module \
+          -p product=default \
+          -p module=quickjs@default \
+          -p buildMode=release \
+          -p debuggable=false \
+          assembleHar \
+          --no-daemon
+
+        echo "QuickJS HAR build completed"
+
+    - name: Upload build artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: quickjs/build/default/outputs/default/quickjs.har
+        retention-days: 30
+
+    - name: Upload build logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          build/
+          quickjs/build/
+        retention-days: 7
