@@ -26,13 +26,6 @@ jobs:
       run: |
         set -e
 
-        export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
-        export DEVECO_TOOLS_HOME="${DEVECO_TOOLS_HOME}"
-        export DEVECO_OHPM="${DEVECO_TOOLS_HOME}/ohpm/bin"
-        export DEVECO_HVIGOR="${DEVECO_TOOLS_HOME}/hvigor/bin"
-        export DEVECO_NODE="${DEVECO_TOOLS_HOME}/node/bin"
-        export PATH="${DEVECO_OHPM}:${DEVECO_HVIGOR}:${DEVECO_NODE}:$PATH"
-
         # Clean up build artifacts
         rm -rf ./oh_modules
         rm -rf ./build
