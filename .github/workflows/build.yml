@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
 
     - name: Setup HarmonyOS SDK
-      uses: hhtczengjing/setup_ohos_sdk@v1
+      uses: hhtczengjing/setup_ohos_sdk@master
       with:
         sdk_version: "6.1.0.830"
 
