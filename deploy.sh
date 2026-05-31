@@ -39,4 +39,4 @@ hvigorw --mode module \
 
 har_path="$PROJECT_PATH/$PROJECT_NAME/build/default/outputs/default/$PROJECT_NAME.har"
 echo "har path: $har_path"
-# ohpm publish $har_path
+ohpm publish $har_path
